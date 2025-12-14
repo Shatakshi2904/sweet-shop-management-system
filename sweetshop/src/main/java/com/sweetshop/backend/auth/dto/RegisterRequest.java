@@ -1,9 +1,17 @@
 package com.sweetshop.backend.auth.dto;
 
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 
 public class RegisterRequest {
 
+    @NotBlank
+    @Email
     private String email;
+
+    @NotBlank
+    @Size(min = 8)
     private String password;
 
     public RegisterRequest() {
@@ -13,7 +21,6 @@ public class RegisterRequest {
         this.email = email;
         this.password = password;
     }
-
 
     public String getEmail() {
         return email;
@@ -27,8 +34,7 @@ public class RegisterRequest {
         return password;
     }
 
-    public void setPassword(String passowrd) {
-        this.password = passowrd;
+    public void setPassword(String password) {
+        this.password = password;
     }
-
 }
