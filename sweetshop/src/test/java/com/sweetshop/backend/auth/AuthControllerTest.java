@@ -21,6 +21,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import com.sweetshop.backend.auth.dto.LoginResponse;
 
 @WebMvcTest(controllers = AuthController.class)
 @AutoConfigureMockMvc(addFilters = false) // disable security filters in this slice test
@@ -67,36 +68,34 @@ class AuthControllerTest {
     }
 
     @Test
-    void shouldLoginWithValidCredentialsAndReturnUserJson() throws Exception {
-        // given
+    @Test
+    void shouldLoginWithValidCredentialsAndReturnTokenJson() throws Exception {
         LoginRequest request = new LoginRequest("test@example.com", "secret123");
-        User user = new User("1", "test@example.com", "encoded-secret");
+        LoginResponse response = new LoginResponse("test@example.com", "dummy-token");
 
-        when(authService.login(any(LoginRequest.class))).thenReturn(user);
+        when(authService.login(any(LoginRequest.class))).thenReturn(response);
 
-        // when + then
         mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value("1"))
-                .andExpect(jsonPath("$.email").value("test@example.com"));
+                .andExpect(jsonPath("$.email").value("test@example.com"))
+                .andExpect(jsonPath("$.token").value("dummy-token"));
 
         verify(authService, times(1)).login(any(LoginRequest.class));
     }
 
     @Test
     void shouldRejectLoginWithInvalidCredentials() throws Exception {
-        // given
         LoginRequest request = new LoginRequest("test@example.com", "wrong");
 
         when(authService.login(any(LoginRequest.class)))
                 .thenThrow(new IllegalArgumentException("Invalid credentials"));
 
-        // when + then
         mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isUnauthorized());
     }
+
 }
