@@ -1,5 +1,7 @@
 package com.sweetshop.backend.auth.controller;
 
+import com.sweetshop.backend.auth.dto.RegisterRequest;
+import com.sweetshop.backend.auth.dto.UserResponse;
 import com.sweetshop.backend.auth.model.User;
 import com.sweetshop.backend.auth.service.AuthService;
 import org.springframework.http.HttpStatus;
@@ -18,8 +20,11 @@ public class AuthController {
     }
 
     @PostMapping("/api/auth/register")
-    public ResponseEntity<User> registerUser(@RequestBody User userRequest) {
-        User createdUser = authService.registerUser(userRequest);
-        return new ResponseEntity<>(createdUser, HttpStatus.CREATED);
+    public ResponseEntity<UserResponse> registerUser(@RequestBody RegisterRequest request) {
+        User userToCreate = new User(null, request.getEmail(), request.getPassword());
+        User createdUser = authService.registerUser(userToCreate);
+
+        UserResponse response = new UserResponse(createdUser.getId(), createdUser.getEmail());
+        return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 }
