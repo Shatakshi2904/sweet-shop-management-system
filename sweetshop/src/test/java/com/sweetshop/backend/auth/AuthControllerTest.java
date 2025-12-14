@@ -68,7 +68,6 @@ class AuthControllerTest {
     }
 
     @Test
-    @Test
     void shouldLoginWithValidCredentialsAndReturnTokenJson() throws Exception {
         LoginRequest request = new LoginRequest("test@example.com", "secret123");
         LoginResponse response = new LoginResponse("test@example.com", "dummy-token");
