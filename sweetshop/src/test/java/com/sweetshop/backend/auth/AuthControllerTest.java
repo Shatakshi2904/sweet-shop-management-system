@@ -1,4 +1,4 @@
-package com.sweetshop_backend.sweetshop.auth.controller;
+package com.sweetshop.backend.auth.controller;
 
 import com.sweetshop.backend.auth.controller.AuthController;
 import org.junit.jupiter.api.Test;
