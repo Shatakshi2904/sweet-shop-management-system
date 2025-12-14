@@ -22,9 +22,7 @@ public class AuthController {
 
     @PostMapping("/api/auth/register")
     public ResponseEntity<UserResponse> registerUser(@Valid @RequestBody RegisterRequest request) {
-        User userToCreate = new User(null, request.getEmail(), request.getPassword());
-        User createdUser = authService.registerUser(userToCreate);
-
+        User createdUser = authService.registerUser(request);
         UserResponse response = new UserResponse(createdUser.getId(), createdUser.getEmail());
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
