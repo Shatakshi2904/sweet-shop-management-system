@@ -5,22 +5,25 @@ import com.sweetshop.backend.auth.dto.LoginResponse;
 import com.sweetshop.backend.auth.dto.RegisterRequest;
 import com.sweetshop.backend.auth.model.User;
 import com.sweetshop.backend.auth.repository.UserRepository;
+import com.sweetshop.backend.security.JwtService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
-import java.util.UUID;
 
 @Service
 public class AuthService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final JwtService jwtService;
 
     public AuthService(UserRepository userRepository,
-                       PasswordEncoder passwordEncoder) {
+                       PasswordEncoder passwordEncoder,
+                       JwtService jwtService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.jwtService = jwtService;
     }
 
     public User registerUser(RegisterRequest request) {
@@ -29,7 +32,7 @@ public class AuthService {
         }
 
         String encodedPassword = passwordEncoder.encode(request.getPassword());
-        User user = new User(null, request.getEmail(), encodedPassword);
+        User user = new User(null, request.getEmail(), encodedPassword, "USER");
         return userRepository.save(user);
     }
 
@@ -40,8 +43,8 @@ public class AuthService {
             throw new IllegalArgumentException("Invalid credentials");
         }
 
-        // For now, generate a dummy token; later you can replace with real JWT.
-        String token = generateTokenForUser(user);
+        String role = user.getRole() != null ? user.getRole() : "USER";
+        String token = jwtService.generateToken(user.getEmail(), role);
 
         return new LoginResponse(user.getEmail(), token);
     }
@@ -50,10 +53,5 @@ public class AuthService {
         Optional<User> userOpt = userRepository.findByEmail(email);
         return userOpt.orElseThrow(
                 () -> new IllegalArgumentException("Invalid credentials"));
-    }
-
-    private String generateTokenForUser(User user) {
-        // placeholder implementation; swap with real JWT generation later
-        return "token-" + UUID.randomUUID();
     }
 }

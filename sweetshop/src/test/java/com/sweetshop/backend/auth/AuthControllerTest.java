@@ -8,9 +8,12 @@ import com.sweetshop.backend.auth.model.User;
 import com.sweetshop.backend.auth.service.AuthService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.FilterType;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -23,7 +26,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import com.sweetshop.backend.auth.dto.LoginResponse;
 
-@WebMvcTest(controllers = AuthController.class)
+@WebMvcTest(controllers = AuthController.class,
+        excludeAutoConfiguration = SecurityAutoConfiguration.class,
+        excludeFilters = @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = {
+                com.sweetshop.backend.config.SecurityConfig.class,
+                com.sweetshop.backend.security.JwtAuthenticationFilter.class
+        }))
 @AutoConfigureMockMvc(addFilters = false) // disable security filters in this slice test
 class AuthControllerTest {
 
@@ -40,7 +48,7 @@ class AuthControllerTest {
     void shouldRegisterUserUsingJsonAndCallService() throws Exception {
         // given
         RegisterRequest request = new RegisterRequest("test@example.com", "secret123");
-        User user = new User("1", "test@example.com", "encoded-secret");
+        User user = new User("1", "test@example.com", "encoded-secret", "USER");
 
         when(authService.registerUser(any(RegisterRequest.class))).thenReturn(user);
 
