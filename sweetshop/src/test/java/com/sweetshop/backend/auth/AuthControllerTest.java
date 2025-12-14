@@ -1,52 +1,39 @@
 package com.sweetshop.backend.auth;
 
-import com.sweetshop.backend.auth.controller.AuthController;
+import com.sweetshop.backend.auth.dto.RegisterRequest;
 import com.sweetshop.backend.auth.model.User;
+import com.sweetshop.backend.auth.repository.UserRepository;
 import com.sweetshop.backend.auth.service.AuthService;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.http.MediaType;
-import org.springframework.test.web.servlet.MockMvc;
+import org.mockito.ArgumentCaptor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.*;
 
-@WebMvcTest(controllers = AuthController.class)
-@AutoConfigureMockMvc(addFilters = false) // disables security filters
-class AuthControllerTest {
-
-    @Autowired
-    private MockMvc mockMvc;
-
-    @MockBean
-    private AuthService authService;
+class AuthServiceTest {
 
     @Test
-    void shouldRegisterUserUsingJsonAndCallService() throws Exception {
-        // given
-        String requestBody = """
-                {
-                  "email": "test@example.com",
-                  "password": "secret123"
-                }
-                """;
+    void registerUser_encodesPassword_beforeSaving() {
+        UserRepository userRepository = mock(UserRepository.class);
+        PasswordEncoder passwordEncoder = mock(PasswordEncoder.class);
 
-        Mockito.when(authService.registerUser(Mockito.any(User.class)))
-                .thenReturn(new User("1", "test@example.com", "secret123"));
+        // Test expects encoding behavior
+        when(userRepository.existsByEmail("a@b.com")).thenReturn(false);
+        when(passwordEncoder.encode("plainPass")).thenReturn("encodedPass");
 
-        // when + then
-        mockMvc.perform(post("/api/auth/register")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(requestBody))
-                .andExpect(status().isCreated());
+        // This constructor does NOT exist yet in red code -> compile error or failing test
+        AuthService authService = new AuthService(userRepository, passwordEncoder);
 
-        // verify controller delegates to service
-        verify(authService, times(1)).registerUser(Mockito.any(User.class));
+        RegisterRequest request = new RegisterRequest("a@b.com", "plainPass");
+        authService.registerUser(request);
+
+        ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
+        verify(userRepository).save(userCaptor.capture());
+
+        User savedUser = userCaptor.getValue();
+        // Red expectation: encoded password must be stored
+        assertThat(savedUser.getPassword()).isEqualTo("encodedPass");
+        verify(passwordEncoder).encode("plainPass");
     }
 }
