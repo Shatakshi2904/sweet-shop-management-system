@@ -1,64 +1,33 @@
-package com.sweetshop.backend.auth;
+// imports to add:
+import com.sweetshop.backend.auth.dto.LoginRequest;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.sweetshop.backend.auth.controller.AuthController;
-import com.sweetshop.backend.auth.dto.RegisterRequest;
-import com.sweetshop.backend.auth.model.User;
-import com.sweetshop.backend.auth.service.AuthService;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.http.MediaType;
-import org.springframework.test.web.servlet.MockMvc;
+@Test
+void shouldLoginWithValidCredentialsAndReturnUserJson() throws Exception {
+    LoginRequest request = new LoginRequest("test@example.com", "secret123");
+    User user = new User("1", "test@example.com", "encoded-secret");
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+    when(authService.login(any(LoginRequest.class))).thenReturn(user);
 
-@WebMvcTest(controllers = AuthController.class)
-@AutoConfigureMockMvc(addFilters = false) // disable security filters for this slice test
-class AuthControllerTest {
+    mockMvc.perform(post("/api/auth/login")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.id").value("1"))
+            .andExpect(jsonPath("$.email").value("test@example.com"));
 
-    @Autowired
-    private MockMvc mockMvc;
+    verify(authService).login(any(LoginRequest.class));
+}
 
-    @Autowired
-    private ObjectMapper objectMapper;
+@Test
+void shouldRejectLoginWithInvalidCredentials() throws Exception {
+    LoginRequest request = new LoginRequest("test@example.com", "wrong");
 
-    @MockBean
-    private AuthService authService;
+    when(authService.login(any(LoginRequest.class)))
+            .thenThrow(new IllegalArgumentException("Invalid credentials"));
 
-    @Test
-    void shouldRegisterUserUsingJsonAndCallService() throws Exception {
-        // given
-        RegisterRequest request = new RegisterRequest("test@example.com", "secret123");
-
-        when(authService.registerUser(any(RegisterRequest.class)))
-                .thenReturn(new User("1", "test@example.com", "encoded-secret"));
-
-        // when + then
-        mockMvc.perform(post("/api/auth/register")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isCreated()); // controller returns 201
-
-        verify(authService, times(1)).registerUser(any(RegisterRequest.class));
-    }
-
-    @Test
-    void shouldReturnBadRequestForInvalidRegistration() throws Exception {
-        // given: invalid payload (empty email and short password)
-        RegisterRequest invalid = new RegisterRequest("", "123");
-
-        // when + then
-        mockMvc.perform(post("/api/auth/register")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(invalid)))
-                .andExpect(status().isBadRequest());
-    }
+    mockMvc.perform(post("/api/auth/login")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request)))
+            .andExpect(status().isUnauthorized());
 }

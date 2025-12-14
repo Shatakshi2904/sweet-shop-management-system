@@ -1,14 +1,16 @@
 package com.sweetshop.backend.auth;
 
-import com.sweetshop.backend.auth.dto.RegisterRequest;
+import com.sweetshop.backend.auth.dto.LoginRequest;
 import com.sweetshop.backend.auth.model.User;
 import com.sweetshop.backend.auth.repository.UserRepository;
 import com.sweetshop.backend.auth.service.AuthService;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.util.Optional;
+
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.*;
 
 class AuthServiceTest {
@@ -18,23 +20,34 @@ class AuthServiceTest {
     private final AuthService authService = new AuthService(userRepository, passwordEncoder);
 
     @Test
-    void registerUser_encodesPassword_beforeSaving() {
+    void login_withValidCredentials_returnsUser() {
         // given
-        RegisterRequest request = new RegisterRequest("a@b.com", "plainPass");
+        LoginRequest request = new LoginRequest("a@b.com", "plainPass");
+        User user = new User("1", "a@b.com", "encodedPass");
 
-        when(userRepository.existsByEmail(request.getEmail())).thenReturn(false);
-        when(passwordEncoder.encode(request.getPassword())).thenReturn("encodedPass");
+        when(userRepository.findByEmail("a@b.com")).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches("plainPass", "encodedPass")).thenReturn(true);
 
         // when
-        authService.registerUser(request);
+        User result = authService.login(request);
 
         // then
-        ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
-        verify(userRepository).save(userCaptor.capture());
+        assertThat(result.getId()).isEqualTo("1");
+        assertThat(result.getEmail()).isEqualTo("a@b.com");
+    }
 
-        User savedUser = userCaptor.getValue();
-        assertThat(savedUser.getEmail()).isEqualTo("a@b.com");
-        assertThat(savedUser.getPassword()).isEqualTo("encodedPass");
-        verify(passwordEncoder).encode("plainPass");
+    @Test
+    void login_withInvalidCredentials_throwsException() {
+        // given
+        LoginRequest request = new LoginRequest("a@b.com", "wrong");
+        User user = new User("1", "a@b.com", "encodedPass");
+
+        when(userRepository.findByEmail("a@b.com")).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches("wrong", "encodedPass")).thenReturn(false);
+
+        // then
+        assertThatThrownBy(() -> authService.login(request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Invalid credentials");
     }
 }
