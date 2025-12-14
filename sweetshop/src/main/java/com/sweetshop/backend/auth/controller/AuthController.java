@@ -1,6 +1,7 @@
 package com.sweetshop.backend.auth.controller;
 
 import com.sweetshop.backend.auth.dto.LoginRequest;
+import com.sweetshop.backend.auth.dto.LoginResponse;
 import com.sweetshop.backend.auth.dto.RegisterRequest;
 import com.sweetshop.backend.auth.model.User;
 import com.sweetshop.backend.auth.service.AuthService;
@@ -30,9 +31,9 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<User> login(@RequestBody LoginRequest request) {
-        User user = authService.login(request);
-        return ResponseEntity.ok(user);
+    public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest request) {
+        LoginResponse response = authService.login(request);
+        return ResponseEntity.ok(response);
     }
 
     @ExceptionHandler(IllegalArgumentException.class)

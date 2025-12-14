@@ -12,6 +12,9 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.*;
+import com.sweetshop.backend.auth.dto.LoginRequest;
+import com.sweetshop.backend.auth.dto.LoginResponse;
+
 
 class AuthServiceTest {
 
@@ -20,7 +23,7 @@ class AuthServiceTest {
     private final AuthService authService = new AuthService(userRepository, passwordEncoder);
 
     @Test
-    void login_withValidCredentials_returnsUser() {
+    void login_withValidCredentials_returnsLoginResponse() {
         // given
         LoginRequest request = new LoginRequest("a@b.com", "plainPass");
         User user = new User("1", "a@b.com", "encodedPass");
@@ -29,11 +32,11 @@ class AuthServiceTest {
         when(passwordEncoder.matches("plainPass", "encodedPass")).thenReturn(true);
 
         // when
-        User result = authService.login(request);
+        LoginResponse result = authService.login(request);
 
         // then
-        assertThat(result.getId()).isEqualTo("1");
         assertThat(result.getEmail()).isEqualTo("a@b.com");
+        assertThat(result.getToken()).isNotBlank();
     }
 
     @Test
@@ -50,4 +53,5 @@ class AuthServiceTest {
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Invalid credentials");
     }
+
 }
