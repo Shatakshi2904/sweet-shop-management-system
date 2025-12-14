@@ -21,7 +21,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(controllers = AuthController.class)
-@AutoConfigureMockMvc(addFilters = false) // disables security filters
+@AutoConfigureMockMvc(addFilters = false) // disable security filters for this slice test
 class AuthControllerTest {
 
     @Autowired
@@ -39,13 +39,26 @@ class AuthControllerTest {
         RegisterRequest request = new RegisterRequest("test@example.com", "secret123");
 
         when(authService.registerUser(any(RegisterRequest.class)))
-                .thenReturn(new User("1", "test@example.com", "secret123"));
+                .thenReturn(new User("1", "test@example.com", "encoded-secret"));
 
-        // when + then  ⬇⬇  REPLACE your old isOk() line with this block
+        // when + then
         mockMvc.perform(post("/api/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isCreated());   // <- here instead of isOk()
+                .andExpect(status().isCreated()); // controller returns 201
+
+        verify(authService, times(1)).registerUser(any(RegisterRequest.class));
     }
 
+    @Test
+    void shouldReturnBadRequestForInvalidRegistration() throws Exception {
+        // given: invalid payload (empty email and short password)
+        RegisterRequest invalid = new RegisterRequest("", "123");
+
+        // when + then
+        mockMvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(invalid)))
+                .andExpect(status().isBadRequest());
+    }
 }
